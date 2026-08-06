@@ -21,7 +21,7 @@ def list_exercises():
     muscle = request.args.get("muscle_group")
     search = request.args.get("search", "").strip()
 
-    sql = "SELECT *, (user_id IS NULL) AS is_global FROM exercises WHERE (user_id = %s OR user_id IS NULL)"
+    sql = "SELECT *, CASE WHEN user_id IS NULL THEN 1 ELSE 0 END AS is_global FROM exercises WHERE (user_id = %s OR user_id IS NULL)"
     params = [user_id]
     if muscle:
         sql += " AND primary_muscle_group = %s"
