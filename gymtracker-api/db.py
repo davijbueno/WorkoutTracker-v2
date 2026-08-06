@@ -3,6 +3,7 @@ import re
 from contextlib import contextmanager
 from urllib.parse import urlparse, unquote
 
+import certifi
 import pytds
 
 # Em serverless (Vercel) não há pool persistente entre invocações.
@@ -36,7 +37,12 @@ def init_db_config(app):
 
 
 def _connect():
-    return pytds.connect(as_dict=True, autocommit=False, **_conn_kwargs)
+    # cafile habilita TLS completo na sessão inteira — obrigatório pelo
+    # Azure SQL Database (sem isso a conexão é recusada com "encryption
+    # required"). Usa o bundle de CAs públicas do certifi.
+    return pytds.connect(
+        as_dict=True, autocommit=False, cafile=certifi.where(), **_conn_kwargs
+    )
 
 
 # ============================================================
