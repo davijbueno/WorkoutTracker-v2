@@ -339,7 +339,7 @@ def _criar_programa_no_banco(user_id: int, dados: dict) -> dict:
                         split_data["letter"],
                         split_data.get("description", ""),
                         split_data["split_order"],
-                        muscle_groups,  # psycopg2 adapts list → TEXT[]
+                        muscle_groups,  # db.py adapta list -> JSON text automaticamente
                     ),
                 )
                 split_db = dict(cur.fetchone())

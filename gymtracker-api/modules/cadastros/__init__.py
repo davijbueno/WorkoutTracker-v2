@@ -112,7 +112,7 @@ def toggle_exercise(exercise_id):
         return jsonify({"error": "Exercícios padrão não podem ser desativados."}), 403
 
     row = db.execute(
-        """UPDATE exercises SET is_active = NOT is_active, updated_at=NOW()
+        """UPDATE exercises SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at=NOW()
            WHERE id=%s AND user_id=%s RETURNING *""",
         (exercise_id, user_id),
     )
@@ -283,7 +283,7 @@ def update_gym(gym_id):
 def toggle_gym(gym_id):
     user_id = int(get_jwt_identity())
     row = db.execute(
-        """UPDATE gyms SET is_active = NOT is_active, updated_at=NOW()
+        """UPDATE gyms SET is_active = CASE WHEN is_active = 1 THEN 0 ELSE 1 END, updated_at=NOW()
            WHERE id=%s AND user_id=%s RETURNING *""",
         (gym_id, user_id),
     )

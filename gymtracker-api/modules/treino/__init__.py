@@ -82,13 +82,14 @@ def _generate_training_days(conn, program_id, total_weeks, weekly_freq, blocks, 
             for ex in exercises:
                 cur.execute(
                     """INSERT INTO training_day_exercises
-                       (training_day_id, split_exercise_id, exercise_id,
+                       (training_day_id, split_exercise_id, exercise_id, exercise_order,
                         planned_sets, planned_reps, planned_load_kg, planned_rest_seconds)
-                       VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                       VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
                     (
                         day_id,
                         ex["split_exercise_id"],
                         ex["exercise_id"],
+                        ex["exercise_order"],
                         ex["sets"] or 3,
                         ex["reps"] or "10",
                         float(ex["load_kg"]) if ex["load_kg"] is not None else 0,
@@ -135,7 +136,7 @@ def get_program(program_id):
 
 
 def _get_program_detail(program_id, user_id):
-    # Usa uma única conexão e 5 queries com ANY() em vez de N+1 (antes: ~43 queries)
+    # Usa uma única conexão e 5 queries com IN (...) em vez de N+1 (antes: ~43 queries)
     with db.db() as conn:
         cur = conn.cursor()
 
@@ -161,13 +162,14 @@ def _get_program_detail(program_id, user_id):
         split_ids = [s["id"] for s in splits_raw]
 
         if split_ids:
+            placeholders = ",".join(["%s"] * len(split_ids))
             cur.execute(
-                """SELECT se.*, e.name as exercise_name, e.primary_muscle_group, e.equipment
+                f"""SELECT se.*, e.name as exercise_name, e.primary_muscle_group, e.equipment
                    FROM split_exercises se
                    JOIN exercises e ON e.id = se.exercise_id
-                   WHERE se.split_id = ANY(%s)
+                   WHERE se.split_id IN ({placeholders})
                    ORDER BY se.split_id, se.exercise_order""",
-                (split_ids,),
+                split_ids,
             )
             all_se = cur.fetchall()
         else:
@@ -176,13 +178,14 @@ def _get_program_detail(program_id, user_id):
         se_ids = [se["id"] for se in all_se]
 
         if se_ids:
+            placeholders = ",".join(["%s"] * len(se_ids))
             cur.execute(
-                """SELECT sebc.*, tb.name as block_name, tb.block_order
+                f"""SELECT sebc.*, tb.name as block_name, tb.block_order
                    FROM split_exercise_block_config sebc
                    JOIN training_blocks tb ON tb.id = sebc.block_id
-                   WHERE sebc.split_exercise_id = ANY(%s)
+                   WHERE sebc.split_exercise_id IN ({placeholders})
                    ORDER BY sebc.split_exercise_id, tb.block_order""",
-                (se_ids,),
+                se_ids,
             )
             all_configs = cur.fetchall()
         else:
@@ -373,11 +376,11 @@ def program_summary(program_id):
 
     stats = db.query_one(
         """SELECT
-             COUNT(*) FILTER (WHERE status = 'completed') as completed,
-             COUNT(*) FILTER (WHERE status = 'missed') as missed,
+             SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+             SUM(CASE WHEN status = 'missed' THEN 1 ELSE 0 END) as missed,
              COUNT(*) as total,
-             MIN(started_at) FILTER (WHERE status = 'completed') as first_started,
-             MAX(completed_at) FILTER (WHERE status = 'completed') as last_completed
+             MIN(CASE WHEN status = 'completed' THEN started_at END) as first_started,
+             MAX(CASE WHEN status = 'completed' THEN completed_at END) as last_completed
            FROM training_days WHERE program_id = %s""",
         (program_id,),
     )
@@ -396,7 +399,7 @@ def program_summary(program_id):
     # aderência por semana
     week_stats = db.query(
         """SELECT week_number,
-             COUNT(*) FILTER (WHERE status = 'completed') as completed,
+             SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
              COUNT(*) as total
            FROM training_days WHERE program_id = %s
            GROUP BY week_number ORDER BY week_number""",
@@ -460,7 +463,7 @@ def _duplicate_with_progression(program_id, user_id, pct):
             """INSERT INTO training_programs
                (user_id, athlete_id, gym_id, name, total_weeks, weekly_training_freq, weekly_cardio_freq, status)
                SELECT user_id, athlete_id, gym_id,
-                      name || ' (Ciclo +1)',
+                      name + ' (Ciclo +1)',
                       total_weeks, weekly_training_freq, weekly_cardio_freq, 'active'
                FROM training_programs WHERE id=%s RETURNING id""",
             (program_id,),
@@ -1075,13 +1078,14 @@ def _generate_training_days_from_schedule(conn, program_id, blocks_db, splits_db
                 for ex in cur.fetchall():
                     cur.execute(
                         """INSERT INTO training_day_exercises
-                           (training_day_id, split_exercise_id, exercise_id,
+                           (training_day_id, split_exercise_id, exercise_id, exercise_order,
                             planned_sets, planned_reps, planned_load_kg, planned_rest_seconds)
-                           VALUES (%s, %s, %s, %s, %s, %s, %s)""",
+                           VALUES (%s, %s, %s, %s, %s, %s, %s, %s)""",
                         (
                             day_id,
                             ex["split_exercise_id"],
                             ex["exercise_id"],
+                            ex["exercise_order"],
                             ex["sets"] or 3,
                             ex["reps"] or "10",
                             float(ex["load_kg"]) if ex["load_kg"] is not None else 0,

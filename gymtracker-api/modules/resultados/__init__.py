@@ -2,7 +2,7 @@ from decimal import Decimal
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from marshmallow import ValidationError
-import psycopg2
+import pytds
 
 import db
 from utils.validators import MeasurementSchema
@@ -112,7 +112,7 @@ def create_measurement():
         )
         return jsonify({"data": _row_to_dict(row), "message": "Medição registrada com sucesso."}), 201
 
-    except psycopg2.errors.UniqueViolation:
+    except pytds.IntegrityError:
         return jsonify({"error": "Já existe uma medição registrada para esta data."}), 409
     except Exception as e:
         return jsonify({"error": str(e)}), 500
