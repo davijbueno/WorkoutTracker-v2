@@ -1,34 +1,34 @@
-# GymTracker 16W — Setup
+# GymTracker 16W (v2) — Setup
+
+> **v2 usa Azure SQL Database** (não Postgres/Supabase). Driver: `python-tds`
+> (puro Python, sem dependência de ODBC — funciona em serverless/Vercel sem
+> empacotar binários nativos). Ver [db.py](gymtracker-api/db.py) para a
+> camada de compatibilidade Postgres→T-SQL.
 
 ---
 
-## 1. Banco de dados: Supabase
+## 1. Banco de dados: Azure SQL Database
 
-### 1.1 Criar projeto
+### 1.1 Criar o servidor/banco
 
-1. Acesse [supabase.com](https://supabase.com) → **New project**
-2. Anote: **Project Ref**, **Region**, **Database Password**
+Portal do Azure → **Azure SQL Database** → **Create**. Anote: nome do
+servidor, usuário admin, senha, nome do banco. Em **Networking**, habilite
+acesso público com uma regra de firewall ampla (`0.0.0.0`–`255.255.255.255`)
+— necessário pois o Vercel (serverless) tem IP de saída dinâmico.
 
-### 1.2 Aplicar schema e seed
+### 1.2 Aplicar o schema
 
-Painel do Supabase → **SQL Editor → New query**
+`gymtracker-api/schema.sql` é T-SQL puro, dividido em batches por `GO`.
+Aplique via `sqlcmd`, Azure Data Studio/SSMS, ou um script Python com
+`python-tds` que divide o arquivo por linhas `GO` e executa cada batch
+(ver histórico do commit da migração para um exemplo).
 
-Execute na ordem:
-1. Cole o conteúdo de `gymtracker-api/schema.sql` → **Run**
-2. Cole o conteúdo de `gymtracker-api/seed.sql` → **Run**
+### 1.3 Connection string
 
-### 1.3 Obter a connection string (Transaction Pooler)
-
-> Para Vercel (serverless) use o **Transaction Pooler** (porta 6543).
-
-1. Painel do Supabase → **Project Settings** (⚙️ no menu lateral)
-2. Clique em **Database**
-3. Role até **"Connection pooling"**
-4. Clique na aba **`URI`**
-5. Copie a string (formato abaixo) e substitua `[YOUR-PASSWORD]` pela senha real:
+Formato usado pelo `db.py` (`DATABASE_URL`):
 
 ```
-postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.com:6543/postgres
+mssql://usuario:senha@servidor.database.windows.net:1433/nome_do_banco
 ```
 
 > **Atenção:** se a senha tiver `@` ou `$`, encode antes de colar na URL:
@@ -41,7 +41,7 @@ postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-0-[REGION].pooler.supabase.co
 ### 2.1 Criar projeto na Vercel
 
 1. Acesse [vercel.com](https://vercel.com) → **Add New Project**
-2. Importe o repositório `Consbueno/WorkoutTracker`
+2. Importe o repositório `davijbueno/WorkoutTracker-v2`
 3. Em **"Root Directory"** defina: `gymtracker-api`
 4. Framework Preset: **Other**
 5. Clique em **Deploy** (vai falhar na primeira vez — normal, precisa das env vars)
@@ -54,13 +54,18 @@ Adicione cada variável:
 
 | Variável | Valor |
 |---|---|
-| `DATABASE_URL` | Connection string do Supabase (Transaction Pooler, porta 6543) |
+| `DATABASE_URL` | `mssql://usuario:senha@servidor.database.windows.net:1433/banco` |
 | `SECRET_KEY` | String aleatória 64 chars |
 | `JWT_SECRET_KEY` | Outra string aleatória 64 chars |
 | `ANTHROPIC_API_KEY` | `sk-ant-api03-...` |
-| `FRONTEND_URL` | `https://workouttracker.consbueno.com` |
+| `FRONTEND_URL` | URL do projeto frontend na Vercel |
 
-> `INIT_DB` deixe **vazio** — o schema já foi aplicado no Supabase.
+> `INIT_DB` deixe **vazio** — o schema já foi aplicado no Azure SQL.
+>
+> **Importante:** o commit sendo implantado precisa ter o e-mail do autor
+> associado a uma conta GitHub com acesso ao repositório — senão a Vercel
+> bloqueia o deploy silenciosamente (fica em "Building..." sem log e sem
+> erro claro). Confira `git log -1 --format="%ae"` antes de fazer deploy.
 
 ### 2.3 Fazer redeploy
 
