@@ -10,6 +10,52 @@ import pytds
 # Cada request abre e fecha sua própria conexão — igual ao padrão anterior
 # com psycopg2/Supabase, só que agora contra Azure SQL Database.
 
+# ============================================================
+# COMPAT: pytds.tls valida o hostname do certificado do servidor
+# usando a API legada do pyOpenSSL (X509.get_extension), removida
+# nas versões recentes do pyOpenSSL/cryptography. Fixar uma versão
+# antiga do pyOpenSSL para manter esse método force o build (Vercel)
+# a compilar `cryptography` do zero (sem wheel pra versão do Python
+# usada lá) — trava o deploy. Em vez disso, repõe só o que o pytds
+# usa (leitura do SAN do certificado) via a API moderna da lib
+# `cryptography`, mantendo pyOpenSSL/cryptography na última versão.
+# ============================================================
+try:
+    import OpenSSL.crypto as _ssl_crypto
+
+    if not hasattr(_ssl_crypto.X509, "get_extension"):
+        from cryptography import x509 as _cx509
+
+        class _SANExtCompat:
+            def __init__(self, dns_names):
+                self._text = ", ".join(f"DNS:{d}" for d in dns_names)
+
+            def get_short_name(self):
+                return b"subjectAltName"
+
+            def __str__(self):
+                return self._text
+
+        def _get_san(x509_obj):
+            try:
+                ext = x509_obj.to_cryptography().extensions.get_extension_for_class(
+                    _cx509.SubjectAlternativeName
+                )
+                return ext.value.get_values_for_type(_cx509.DNSName)
+            except _cx509.ExtensionNotFound:
+                return []
+
+        def _get_extension_count(self):
+            return 1 if _get_san(self) else 0
+
+        def _get_extension(self, index):
+            return _SANExtCompat(_get_san(self))
+
+        _ssl_crypto.X509.get_extension_count = _get_extension_count
+        _ssl_crypto.X509.get_extension = _get_extension
+except Exception as _e:  # nunca deve impedir o app de subir
+    print(f"[db] aviso: shim de compat TLS não aplicado: {_e}")
+
 _conn_kwargs = None
 
 
