@@ -408,7 +408,7 @@ ALTER TABLE users ENABLE ROW LEVEL SECURITY;
 ALTER TABLE users FORCE ROW LEVEL SECURITY;
 
 -- postgres bypassa quando app.current_user_id não está definido (init)
-CREATE POLICY users_admin ON users TO postgres
+CREATE POLICY users_admin ON users TO wtadmin
     USING (current_user_id() IS NULL)
     WITH CHECK (current_user_id() IS NULL);
 
@@ -430,7 +430,7 @@ CREATE POLICY users_update ON users FOR UPDATE
 ALTER TABLE athletes ENABLE ROW LEVEL SECURITY;
 ALTER TABLE athletes FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY athletes_admin ON athletes TO postgres
+CREATE POLICY athletes_admin ON athletes TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY athletes_isolation ON athletes
@@ -443,7 +443,7 @@ CREATE POLICY athletes_isolation ON athletes
 ALTER TABLE exercises ENABLE ROW LEVEL SECURITY;
 ALTER TABLE exercises FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY exercises_admin ON exercises TO postgres
+CREATE POLICY exercises_admin ON exercises TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY exercises_isolation ON exercises
@@ -456,7 +456,7 @@ CREATE POLICY exercises_isolation ON exercises
 ALTER TABLE gyms ENABLE ROW LEVEL SECURITY;
 ALTER TABLE gyms FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY gyms_admin ON gyms TO postgres
+CREATE POLICY gyms_admin ON gyms TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY gyms_isolation ON gyms
@@ -469,7 +469,7 @@ CREATE POLICY gyms_isolation ON gyms
 ALTER TABLE training_programs ENABLE ROW LEVEL SECURITY;
 ALTER TABLE training_programs FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY programs_admin ON training_programs TO postgres
+CREATE POLICY programs_admin ON training_programs TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY programs_isolation ON training_programs
@@ -482,7 +482,7 @@ CREATE POLICY programs_isolation ON training_programs
 ALTER TABLE training_blocks ENABLE ROW LEVEL SECURITY;
 ALTER TABLE training_blocks FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY blocks_admin ON training_blocks TO postgres
+CREATE POLICY blocks_admin ON training_blocks TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY blocks_isolation ON training_blocks
@@ -503,7 +503,7 @@ CREATE POLICY blocks_isolation ON training_blocks
 ALTER TABLE training_splits ENABLE ROW LEVEL SECURITY;
 ALTER TABLE training_splits FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY splits_admin ON training_splits TO postgres
+CREATE POLICY splits_admin ON training_splits TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY splits_isolation ON training_splits
@@ -524,7 +524,7 @@ CREATE POLICY splits_isolation ON training_splits
 ALTER TABLE split_exercises ENABLE ROW LEVEL SECURITY;
 ALTER TABLE split_exercises FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY split_ex_admin ON split_exercises TO postgres
+CREATE POLICY split_ex_admin ON split_exercises TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY split_ex_isolation ON split_exercises
@@ -549,7 +549,7 @@ CREATE POLICY split_ex_isolation ON split_exercises
 ALTER TABLE split_exercise_block_config ENABLE ROW LEVEL SECURITY;
 ALTER TABLE split_exercise_block_config FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY sebc_admin ON split_exercise_block_config TO postgres
+CREATE POLICY sebc_admin ON split_exercise_block_config TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY sebc_isolation ON split_exercise_block_config
@@ -576,7 +576,7 @@ CREATE POLICY sebc_isolation ON split_exercise_block_config
 ALTER TABLE training_days ENABLE ROW LEVEL SECURITY;
 ALTER TABLE training_days FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY days_admin ON training_days TO postgres
+CREATE POLICY days_admin ON training_days TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY days_isolation ON training_days
@@ -597,7 +597,7 @@ CREATE POLICY days_isolation ON training_days
 ALTER TABLE training_day_exercises ENABLE ROW LEVEL SECURITY;
 ALTER TABLE training_day_exercises FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY tde_admin ON training_day_exercises TO postgres
+CREATE POLICY tde_admin ON training_day_exercises TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY tde_isolation ON training_day_exercises
@@ -622,7 +622,7 @@ CREATE POLICY tde_isolation ON training_day_exercises
 ALTER TABLE measurements ENABLE ROW LEVEL SECURITY;
 ALTER TABLE measurements FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY measurements_admin ON measurements TO postgres
+CREATE POLICY measurements_admin ON measurements TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY measurements_isolation ON measurements
@@ -635,7 +635,7 @@ CREATE POLICY measurements_isolation ON measurements
 ALTER TABLE ai_analyses ENABLE ROW LEVEL SECURITY;
 ALTER TABLE ai_analyses FORCE ROW LEVEL SECURITY;
 
-CREATE POLICY ai_admin ON ai_analyses TO postgres
+CREATE POLICY ai_admin ON ai_analyses TO wtadmin
     USING (current_user_id() IS NULL) WITH CHECK (current_user_id() IS NULL);
 
 CREATE POLICY ai_isolation ON ai_analyses
