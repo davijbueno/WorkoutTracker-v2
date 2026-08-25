@@ -1,6 +1,8 @@
 import os
 import datetime
+import traceback
 from flask import Flask, jsonify, g, request, make_response
+from werkzeug.exceptions import HTTPException
 from flask_cors import CORS
 from flask_jwt_extended import JWTManager, verify_jwt_in_request, get_jwt_identity
 from flask_bcrypt import Bcrypt
@@ -89,6 +91,18 @@ def create_app():
         for k, v in _CORS_HEADERS.items():
             resp.headers.setdefault(k, v)
         return resp
+
+    @app.errorhandler(Exception)
+    def _handle_unexpected_error(err):
+        """Erro não tratado vira JSON com {"error": ...} em vez de HTML.
+
+        Sem isso o front recebe uma página de erro do Flask, não consegue ler
+        `response.data.error` e a falha some da tela.
+        """
+        if isinstance(err, HTTPException):
+            return err
+        traceback.print_exc()
+        return jsonify({"error": f"Erro interno: {err}"}), 500
 
     @jwt.expired_token_loader
     def expired_token_callback(jwt_header, jwt_payload):

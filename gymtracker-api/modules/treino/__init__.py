@@ -767,13 +767,25 @@ def complete_day(day_id):
     if not day:
         return jsonify({"error": "Dia não encontrado."}), 404
 
-    _save_exercise_data(day_id, data.get("exercises", []))
-
-    db.execute(
-        """UPDATE training_days SET status='completed', completed_at=NOW(),
-           notes=%s, updated_at=NOW() WHERE id=%s""",
-        (data.get("notes"), day_id),
-    )
+    # Os exercícios e o status do dia precisam commitar juntos: se um UPDATE
+    # falhar no meio, o dia não pode ficar marcado como concluído (e vice-versa).
+    # Uma conexão só também evita abrir N conexões TLS ao Azure SQL por request.
+    with db.db() as conn:
+        cur = conn.cursor()
+        _save_exercise_data(day_id, data.get("exercises", []), cur)
+        if "notes" in data:
+            cur.execute(
+                """UPDATE training_days SET status='completed', completed_at=NOW(),
+                   notes=%s, updated_at=NOW() WHERE id=%s""",
+                (data.get("notes"), day_id),
+            )
+        else:
+            # sem notes no payload, preserva a nota já gravada
+            cur.execute(
+                """UPDATE training_days SET status='completed', completed_at=NOW(),
+                   updated_at=NOW() WHERE id=%s""",
+                (day_id,),
+            )
 
     # verificar se foi o último dia do ciclo
     program_id = day["program_id"]
@@ -834,12 +846,10 @@ def save_draft(day_id):
     if not day:
         return jsonify({"error": "Dia não encontrado."}), 404
 
-    _save_exercise_data(day_id, data.get("exercises", []))
-
-    db.execute(
-        "UPDATE training_days SET updated_at=NOW() WHERE id=%s",
-        (day_id,),
-    )
+    with db.db() as conn:
+        cur = conn.cursor()
+        _save_exercise_data(day_id, data.get("exercises", []), cur)
+        cur.execute("UPDATE training_days SET updated_at=NOW() WHERE id=%s", (day_id,))
     return jsonify({"message": "Rascunho salvo com sucesso."})
 
 
@@ -986,17 +996,18 @@ def update_day_exercise(day_id, ex_id):
         return jsonify({"error": "Dia não encontrado."}), 404
 
     actual_reps = data.get("actual_reps")
+    is_completed = bool(data.get("is_completed", False))
     row = db.execute(
         """UPDATE training_day_exercises SET
            actual_load_kg=%s, actual_reps=%s, is_completed=%s,
-           exercise_notes=%s, completed_at=CASE WHEN %s THEN NOW() ELSE NULL END
+           exercise_notes=%s, completed_at=CASE WHEN %s = 1 THEN NOW() ELSE NULL END
            WHERE id=%s AND training_day_id=%s RETURNING *""",
         (
             float(data["actual_load_kg"]) if data.get("actual_load_kg") is not None else None,
             json.dumps(actual_reps) if actual_reps is not None else None,
-            data.get("is_completed", False),
+            is_completed,
             data.get("exercise_notes"),
-            data.get("is_completed", False),
+            1 if is_completed else 0,
             ex_id,
             day_id,
         ),
@@ -1006,28 +1017,38 @@ def update_day_exercise(day_id, ex_id):
     return jsonify({"data": _row_to_dict(row), "message": "Exercício atualizado."})
 
 
-def _save_exercise_data(day_id, exercises):
+_SAVE_EXERCISE_SQL = """UPDATE training_day_exercises SET
+       actual_load_kg=%s, actual_reps=%s, is_completed=%s,
+       exercise_notes=%s,
+       completed_at=CASE WHEN %s = 1 THEN NOW() ELSE completed_at END
+       WHERE id=%s AND training_day_id=%s"""
+
+
+def _save_exercise_data(day_id, exercises, cur=None):
+    """Grava carga/reps/conclusão de cada exercício do dia.
+
+    Quando `cur` é informado, todos os UPDATEs entram na transação de quem
+    chamou (uma conexão só). Sem `cur`, cada UPDATE abre a própria conexão.
+    """
     for ex in exercises:
         ex_id = ex.get("id")
         if not ex_id:
             continue
         actual_reps = ex.get("actual_reps")
-        db.execute(
-            """UPDATE training_day_exercises SET
-               actual_load_kg=%s, actual_reps=%s, is_completed=%s,
-               exercise_notes=%s,
-               completed_at=CASE WHEN %s THEN NOW() ELSE completed_at END
-               WHERE id=%s AND training_day_id=%s""",
-            (
-                float(ex["actual_load_kg"]) if ex.get("actual_load_kg") is not None else None,
-                json.dumps(actual_reps) if actual_reps is not None else None,
-                ex.get("is_completed", False),
-                ex.get("exercise_notes"),
-                ex.get("is_completed", False),
-                ex_id,
-                day_id,
-            ),
+        is_completed = bool(ex.get("is_completed", False))
+        params = (
+            float(ex["actual_load_kg"]) if ex.get("actual_load_kg") is not None else None,
+            json.dumps(actual_reps) if actual_reps is not None else None,
+            is_completed,
+            ex.get("exercise_notes"),
+            1 if is_completed else 0,
+            ex_id,
+            day_id,
         )
+        if cur is not None:
+            cur.execute(_SAVE_EXERCISE_SQL, params)
+        else:
+            db.execute(_SAVE_EXERCISE_SQL, params)
 
 
 # ── IMPORTAÇÃO DE PROGRAMA COMPLETO ─────────────────────────────────────────
