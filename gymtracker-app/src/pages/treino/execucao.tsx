@@ -14,6 +14,11 @@ import { toast } from '@/hooks/use-toast'
 import { useAppStore } from '@/stores/app-store'
 import { cn } from '@/lib/utils'
 
+function apiErrorToast(err: unknown, fallback: string) {
+  const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? fallback
+  toast({ title: msg, variant: 'destructive' })
+}
+
 export default function ExecucaoPage() {
   const navigate = useNavigate()
   const qc = useQueryClient()
@@ -44,11 +49,13 @@ export default function ExecucaoPage() {
       setStarted(true)
       qc.invalidateQueries({ queryKey: ['proximo-dia'] })
     },
+    onError: (err: unknown) => apiErrorToast(err, 'Erro ao iniciar o treino.'),
   })
 
   const draftMutation = useMutation({
     mutationFn: () => diasApi.rascunho(dayId!, { exercises }),
     onSuccess: () => toast({ title: 'Rascunho salvo!' }),
+    onError: (err: unknown) => apiErrorToast(err, 'Erro ao salvar o rascunho.'),
   })
 
   const completeMutation = useMutation({
@@ -63,6 +70,7 @@ export default function ExecucaoPage() {
       toast({ title: 'Treino concluído! Ótimo trabalho! 💪' })
       navigate('/')
     },
+    onError: (err: unknown) => apiErrorToast(err, 'Erro ao concluir o treino.'),
   })
 
   const missMutation = useMutation({
@@ -75,6 +83,7 @@ export default function ExecucaoPage() {
       toast({ title: 'Dia marcado como falta.' })
       navigate('/')
     },
+    onError: (err: unknown) => apiErrorToast(err, 'Erro ao marcar falta.'),
   })
 
   const revertMutation = useMutation({
@@ -87,10 +96,7 @@ export default function ExecucaoPage() {
       qc.invalidateQueries({ queryKey: ['programa-ativo'] })
       toast({ title: 'Treino revertido para pendente.' })
     },
-    onError: (err: unknown) => {
-      const msg = (err as { response?: { data?: { error?: string } } })?.response?.data?.error ?? 'Erro ao reverter.'
-      toast({ title: msg, variant: 'destructive' })
-    },
+    onError: (err: unknown) => apiErrorToast(err, 'Erro ao reverter.'),
   })
 
   const handleExerciseChange = (id: number, field: string, value: unknown) => {
