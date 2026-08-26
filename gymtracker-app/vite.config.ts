@@ -25,6 +25,14 @@ export default defineConfig({
         ],
       },
       workbox: {
+        // Sem isso, um redeploy gera um novo service worker mas ele fica
+        // "waiting" indefinidamente: só assume o controle quando TODAS as
+        // abas/janelas do PWA forem fechadas por completo, então usuários
+        // com o app já aberto continuam presos no bundle antigo mesmo após
+        // dar reload (era o caso do fix de gymtracker-api/modules/treino).
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
         globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
         runtimeCaching: [
           {

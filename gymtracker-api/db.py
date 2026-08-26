@@ -100,13 +100,13 @@ def _connect():
 #   - NOW()                  -> SYSUTCDATETIME()
 #   - TRUE / FALSE            -> 1 / 0
 #   - "... RETURNING x"       -> "OUTPUT INSERTED.x ..." (posição correta)
-#   - "... LIMIT 1"            -> "SELECT TOP 1 ..."
+#   - "... LIMIT n"            -> "SELECT TOP n ..."
 # Padrões não-mecânicos (ANY(), FILTER, ||, NOT col) foram
 # corrigidos diretamente nas queries dos módulos.
 # ============================================================
 
 _RETURNING_RE = re.compile(r"\bRETURNING\s+(\*|[\w, ]+?)\s*$", re.IGNORECASE)
-_LIMIT1_RE = re.compile(r"\bLIMIT\s+1\s*$", re.IGNORECASE)
+_LIMIT_RE = re.compile(r"\bLIMIT\s+(\d+)\s*$", re.IGNORECASE)
 _TRUE_RE = re.compile(r"\bTRUE\b", re.IGNORECASE)
 _FALSE_RE = re.compile(r"\bFALSE\b", re.IGNORECASE)
 _NOW_RE = re.compile(r"\bNOW\(\)", re.IGNORECASE)
@@ -143,17 +143,18 @@ def _rewrite_returning(sql):
     return body
 
 
-def _rewrite_limit1(sql):
-    m = _LIMIT1_RE.search(sql.strip())
+def _rewrite_limit(sql):
+    m = _LIMIT_RE.search(sql.strip())
     if not m:
         return sql
+    n = m.group(1)
     body = sql[: m.start()].rstrip()
-    return re.sub(r"\bSELECT\b", "SELECT TOP 1", body, count=1, flags=re.IGNORECASE)
+    return re.sub(r"\bSELECT\b", f"SELECT TOP {n}", body, count=1, flags=re.IGNORECASE)
 
 
 def _translate(sql):
     sql = _rewrite_returning(sql)
-    sql = _rewrite_limit1(sql)
+    sql = _rewrite_limit(sql)
     sql = _NOW_RE.sub("SYSUTCDATETIME()", sql)
     sql = _TRUE_RE.sub("1", sql)
     sql = _FALSE_RE.sub("0", sql)
