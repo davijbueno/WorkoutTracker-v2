@@ -396,13 +396,19 @@ def program_summary(program_id):
         delta = stats_dict["last_completed"] - stats_dict["first_started"]
         calendar_days = delta.days + 1
 
-    # aderência por semana
+    # Aderência por semana: exercícios de fato marcados como concluídos frente
+    # ao total de exercícios planejados nos dias já jogados (completed/missed)
+    # daquela semana — não "dias completos", porque um dia pode ter sido
+    # concluído com só parte dos exercícios marcados (ver treino/execucao).
+    # Semanas ainda não iniciadas (todos os dias pending) ficam de fora.
     week_stats = db.query(
-        """SELECT week_number,
-             SUM(CASE WHEN status = 'completed' THEN 1 ELSE 0 END) as completed,
+        """SELECT td.week_number,
+             SUM(CASE WHEN tde.is_completed = 1 THEN 1 ELSE 0 END) as completed,
              COUNT(*) as total
-           FROM training_days WHERE program_id = %s
-           GROUP BY week_number ORDER BY week_number""",
+           FROM training_days td
+           JOIN training_day_exercises tde ON tde.training_day_id = td.id
+           WHERE td.program_id = %s AND td.status IN ('completed', 'missed')
+           GROUP BY td.week_number ORDER BY td.week_number""",
         (program_id,),
     )
 
