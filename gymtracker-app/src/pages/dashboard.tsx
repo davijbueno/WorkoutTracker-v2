@@ -9,7 +9,7 @@ import { CycleProgressBar } from '@/components/training/progress-bar'
 import { BlockBadge } from '@/components/training/block-badge'
 import { WeightChart, type WeightPoint } from '@/components/charts/weight-chart'
 import { AdherenceChart } from '@/components/charts/adherence-chart'
-import { useActiveProgram, useNextDay } from '@/hooks/use-training'
+import { useActiveProgram, useNextDay, useProgramSummary } from '@/hooks/use-training'
 import { medicoesApi } from '@/api/resultados'
 import { diasApi } from '@/api/treino'
 import { formatDate, formatWeight, cn } from '@/lib/utils'
@@ -30,6 +30,7 @@ export default function DashboardPage() {
   const { units } = useAppStore()
   const { data: program, isLoading: loadingProg } = useActiveProgram()
   const { data: nextDay } = useNextDay()
+  const { data: summary } = useProgramSummary(program?.id)
 
   const { data: medicoes = [] } = useQuery({
     queryKey: ['medicoes-evolucao'],
@@ -50,20 +51,7 @@ export default function DashboardPage() {
         const currentWeek = days.find(d => d.status === 'in_progress' || d.status === 'pending')?.week_number ?? 1
         const blockInfo = days.find(d => d.status === 'in_progress' || d.status === 'pending')
 
-        // Aderência por semana — apenas semanas com pelo menos 1 treino concluído ou falta
-        const weekMap: Record<number, { completed: number; total: number }> = {}
-        for (const d of days) {
-          if (d.status === 'completed' || d.status === 'missed') {
-            if (!weekMap[d.week_number]) weekMap[d.week_number] = { completed: 0, total: 0 }
-            weekMap[d.week_number].total++
-            if (d.status === 'completed') weekMap[d.week_number].completed++
-          }
-        }
-        const weekStats = Object.entries(weekMap)
-          .map(([w, v]) => ({ week_number: parseInt(w), ...v }))
-          .sort((a, b) => a.week_number - b.week_number)
-
-        return { completed, missed, pending, total, adherencePct, currentWeek, blockInfo, weekStats }
+        return { completed, missed, pending, total, adherencePct, currentWeek, blockInfo }
       }),
     enabled: !!program,
   })
@@ -265,8 +253,8 @@ export default function DashboardPage() {
         </Card>
       </div>
 
-      {/* ── Gráfico: aderência por semana ── */}
-      {diasStats && diasStats.weekStats.length > 0 && (
+      {/* ── Gráfico: aderência por semana (exercícios feitos vs. planejados) ── */}
+      {summary && summary.by_week.length > 0 && (
         <Card>
           <CardHeader className="pb-2">
             <CardTitle className="text-sm font-medium text-muted-foreground flex items-center gap-2">
@@ -275,7 +263,7 @@ export default function DashboardPage() {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <AdherenceChart data={diasStats.weekStats} />
+            <AdherenceChart data={summary.by_week} />
           </CardContent>
         </Card>
       )}
