@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams, Navigate } from 'react-router-dom'
+import { useSearchParams, Navigate, Link } from 'react-router-dom'
 import { Dumbbell } from 'lucide-react'
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
@@ -109,6 +109,12 @@ export default function LoginPage() {
                   <Button type="submit" className="w-full" disabled={login.isPending}>
                     {login.isPending ? 'Entrando...' : 'Entrar'}
                   </Button>
+                  <Link
+                    to="/esqueci-senha"
+                    className="block text-center text-sm text-muted-foreground hover:text-foreground transition-colors"
+                  >
+                    Esqueceu sua senha?
+                  </Link>
                 </form>
               </CardContent>
             </Card>

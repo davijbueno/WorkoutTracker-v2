@@ -5,6 +5,7 @@ flask-bcrypt==1.0.1
 python-tds==1.17.1
 pyOpenSSL
 certifi
+requests==2.32.3
 python-dotenv==1.0.1
 marshmallow==3.23.2
 anthropic==0.49.0

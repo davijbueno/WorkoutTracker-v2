@@ -5,6 +5,8 @@ import { Sidebar } from '@/components/layout/sidebar'
 import { BottomNav } from '@/components/layout/bottom-nav'
 
 import LoginPage from '@/pages/login'
+import ForgotPasswordPage from '@/pages/forgot-password'
+import ResetPasswordPage from '@/pages/reset-password'
 import DashboardPage from '@/pages/dashboard'
 import ExerciciosPage from '@/pages/cadastros/exercicios'
 import AtletaPage from '@/pages/cadastros/atleta'
@@ -43,6 +45,8 @@ export function AppRoutes() {
   return (
     <Routes>
       <Route path="/login" element={<LoginPage />} />
+      <Route path="/esqueci-senha" element={<ForgotPasswordPage />} />
+      <Route path="/redefinir-senha" element={<ResetPasswordPage />} />
       <Route
         path="/*"
         element={
