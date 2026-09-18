@@ -30,6 +30,15 @@ IF OBJECT_ID('dbo.trg_users_updated_at', 'TR') IS NOT NULL
     DROP TRIGGER dbo.trg_users_updated_at;
 GO
 
+-- "Esqueci minha senha": token de uso único, hash (sha256) + expiração.
+-- Nunca guardamos o token em texto puro, igual senha.
+IF COL_LENGTH('dbo.users', 'reset_token_hash') IS NULL
+    ALTER TABLE dbo.users ADD reset_token_hash NVARCHAR(128) NULL;
+GO
+IF COL_LENGTH('dbo.users', 'reset_token_expires_at') IS NULL
+    ALTER TABLE dbo.users ADD reset_token_expires_at DATETIME2 NULL;
+GO
+
 -- ------------------------------------------------------------
 -- TABELA 2: athletes
 -- body_restrictions: JSON text (array de objetos) — NVARCHAR(MAX)

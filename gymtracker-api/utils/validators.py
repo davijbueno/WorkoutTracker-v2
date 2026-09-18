@@ -22,6 +22,15 @@ class LoginSchema(Schema):
     password = fields.Str(required=True)
 
 
+class ForgotPasswordSchema(Schema):
+    email = fields.Email(required=True)
+
+
+class ResetPasswordSchema(Schema):
+    token = fields.Str(required=True, validate=validate.Length(min=1))
+    password = fields.Str(required=True, validate=validate.Length(min=6))
+
+
 class ExerciseSchema(Schema):
     name = fields.Str(required=True, validate=validate.Length(min=1, max=100))
     primary_muscle_group = fields.Str(required=True, validate=validate.OneOf(MUSCLE_GROUPS))

@@ -31,6 +31,23 @@ export function useRegister() {
   })
 }
 
+export function useForgotPassword() {
+  return useMutation({
+    mutationFn: (data: { email: string }) => authApi.esqueciSenha(data),
+  })
+}
+
+export function useResetPassword() {
+  const navigate = useNavigate()
+
+  return useMutation({
+    mutationFn: (data: { token: string; password: string }) => authApi.redefinirSenha(data),
+    onSuccess: () => {
+      navigate('/login')
+    },
+  })
+}
+
 export function useLogout() {
   const { logout } = useAuthStore()
   const navigate = useNavigate()

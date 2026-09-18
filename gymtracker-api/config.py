@@ -23,3 +23,7 @@ class Config:
 
     ANTHROPIC_API_KEY = os.getenv("ANTHROPIC_API_KEY", "")
     FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:5173")
+
+    # Resend (envio do e-mail de "esqueci minha senha")
+    RESEND_API_KEY = os.getenv("RESEND_API_KEY", "")
+    RESEND_FROM_EMAIL = os.getenv("RESEND_FROM_EMAIL", "GymTracker 16W <onboarding@resend.dev>")
